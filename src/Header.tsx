@@ -1,7 +1,8 @@
 /** @format */
 
 import React from 'react';
-import axios from 'axios';
+import {gql} from 'apollo-boost';
+import {Query} from 'react-apollo';
 
 interface IViewer {
   name: string;
@@ -9,39 +10,39 @@ interface IViewer {
 }
 
 interface IQueryResult {
-  data: {
-    viewer: IViewer;
-  };
+  viewer: IViewer;
 }
+
+const GET_VIEWER = gql`
+  {
+    viewer {
+      name
+      avatarUrl
+    }
+  }
+`;
+
 export const Header: React.FC = () => {
-  const [viewer, setViewer]: [IViewer, (viewer: IViewer) => void] = React.useState({name: '', avatarUrl: ''});
-
-  React.useEffect(() => {
-    axios.post<IQueryResult>(
-      'https://api.github.com/graphql',
-      {
-        query: `query {
-          viewer {
-          name
-          avatarUrl
-          }
-        }`
-      },
-      {
-        headers: {
-          Authorization: 'bearer b840dacb1ba82f83bb510564746a5c3edb32c970',
-        },
-      },
-    ).then(response => {
-      setViewer(response.data.data.viewer);
-    });
-  }, []);
-
   return (
-    <div>
-      <img src={viewer.avatarUrl} className="avatar" />
-      <div className="viewer">{viewer.name}</div>
-      <h1>GitHub Search</h1>
-    </div>
+    <Query<IQueryResult> query={GET_VIEWER}>
+      {({data, loading, error}) => {
+        if (error) {
+          return <div className="viewer">{error.toString()}</div>;
+        }
+        if (loading) {
+          return <div className="viewer">Loading...</div>;
+        }
+        if (!data || !data.viewer) {
+          return null;
+        }
+        return (
+          <div>
+            <img src={data.viewer.avatarUrl} className="avatar" alt={'avatar'} />
+            <div className="viewer">{data.viewer.name}</div>
+            <h1>GitHub Search</h1>
+          </div>
+        );
+      }}
+    </Query>
   );
 };
